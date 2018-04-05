@@ -115,3 +115,39 @@ def update_inbound_intratraffic(host, ip_addr, workload):
         }
     ]
     write(json_body)
+
+def update_reported_addr(dpid, count):
+    "reported"
+    json_body = [
+        {
+            "measurement": "reported_addresses",
+            "tags":
+            {
+                "dpid": dpid
+            },
+            "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "fields":
+            {
+                "count": count
+            }
+        }
+    ]
+    write(json_body)
+
+def update_blocked_addr(dpid, count):
+    "blocked"
+    json_body = [
+        {
+            "measurement": "blocked_addresses",
+            "tags":
+                {
+                    "dpid": dpid
+                },
+            "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "fields":
+                {
+                    "count": count
+                }
+        }
+    ]
+    write(json_body)

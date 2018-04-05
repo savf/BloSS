@@ -19,6 +19,7 @@ class Host( object ):
         self.avg_tx_per_dst = {}
 
         self.time = datetime.now()
+        self.time_blocked = datetime.now()
 
     def set_rx_traffic(self, src, traffic):
 

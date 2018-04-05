@@ -16,8 +16,8 @@ THRESHOLD_HOST_BLOCKING = 10
 THRESHOLD_HOST_WARNING = 5
 THRESHOLD_HOST_SINGLE_CONNECTION = 2
 
-MAX_TIME_WINDOW_AVG_TX_TRAFFIC = 60 #seconds
-MAX_TIME_WINDOW_AVG_RX_TRAFFIC = 60 #seconds
+MAX_TIME_WINDOW_AVG_TX_TRAFFIC = 10 #seconds
+MAX_TIME_WINDOW_AVG_RX_TRAFFIC = 10 #seconds
 
 #################################################
 #Hosts in the Network(s) (NET)
@@ -107,5 +107,5 @@ DB_NAME = 'mydb'
 #Protection Configuration (def)
 #################################################
 
-DEF_IDLE_TIMEOUT = 20 #seconds
+DEF_IDLE_TIMEOUT = 30 #seconds
 

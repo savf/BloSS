@@ -4,14 +4,6 @@ import input
 import ast
 import json
 import hashlib
-import redis
-import os
-import ethConn
-import ipfsConn
-
-"""
-The implementation of IPFS is untested becaause of the inavailability of a testing system
-"""
 
 from datetime import datetime
 
@@ -22,9 +14,6 @@ i.e., the 'controller.py' or other modules should not manage
 '''
 
 global web3, contract
-
-# File name for the file containing addresses
-file_name = 'attackers.txt'
 
 '''
 To keep things up to date we check what is not up to date
@@ -38,7 +27,8 @@ To keep track of hosts retrieved and blocked
 
 global log_blocked_hosts
 
-# TODO: compile/upload the contract here
+
+#TODO: compile/upload the contract here
 '''
 def create_contract():
 
@@ -64,11 +54,6 @@ def create_contract():
 
 '''
 
-
-def create_contract():
-    return ethConn.deploy_contract()
-
-
 def connect():
     '''
     This method should be called as soon as the controller is started, otherwise
@@ -80,8 +65,8 @@ def connect():
     global previous_attackers, previous_timestamp
     global log_blocked_hosts
 
-    previous_timestamp = None  # initializing
-    previous_attackers = None  # initializing
+    previous_timestamp = None #initializing
+    previous_attackers = None #initializing
     log_blocked_hosts = {}
 
     '''
@@ -104,14 +89,11 @@ def connect():
         address=input.BC_CONTRACT_ADDRESS
     )
 
-    r = redis.Redis(
-        host='tkb01',
-        port=6379)
-
-    return True  # Yeyy
+    return True #Yeyy
 
 
 def set_network(msg):
+
     '''
     Define the network addresses maintained by an AS in the JSON format
     *msg hardcoded for our example in "input.py" -> BC_AS_NETWORKS
@@ -122,34 +104,36 @@ def set_network(msg):
     global contract
 
     try:
-        contract.transact(input.BC_TRANSACTION_TX).set_network(msg)
-    except:  # if something goes bad (e.g., contract is not instantiated)
+        contract.transact( input.BC_TRANSACTION_TX ).set_network( msg )
+    except: #if something goes bad (e.g., contract is not instantiated)
         return None
     return True
 
 
 def get_network():
+
     '''
     Retrieve the networks maintained by the different ASEs encoded as JSON
 
     :return:
     '''
 
-    # TODO: REQUIRE ++TEST/REVIEW
+    #TODO: REQUIRE ++TEST/REVIEW
 
     global contract
     try:
-        network_addr = contract.call({'from': input.BC_ACCOUNT_ADDRESS, 'to': contract.address}).get_network()
+        network_addr = contract.call( {'from':input.BC_ACCOUNT_ADDRESS,'to':contract.address} ).get_network( )
         if network_addr:
-            network_addr = json.loads(network_addr)
-            # network_addr["ASN1"], network_addr["ASN2"]. network_addr["ASN1"]
-            # TODO: we also need to retrieve the contract address of each AS
+            network_addr = json.loads( network_addr )
+            #network_addr["ASN1"], network_addr["ASN2"]. network_addr["ASN1"]
+            #TODO: we also need to retrieve the contract address of each AS
     except:
         return None
     return True
 
 
 def report_ipv4(current_attackers):
+
     '''
     Report bad hosts to the blockchain verifying two conditions:
     1) The previous reported list and the current reported list are different
@@ -174,13 +158,16 @@ def report_ipv4(current_attackers):
         previous_timestamp = current_timestamp
     delta_timestamp_seconds = (current_timestamp - previous_timestamp).seconds
 
+    if delta_timestamp_seconds > input.DEF_IDLE_TIMEOUT:
+        previous_attackers = None
+
     '''
     Fixed time interval to publish addresses. If the list of attackers is not changed in the meanwhile
     '''
 
     if delta_timestamp_seconds >= input.BC_MIN_REPORT_INTERVAL and delta_timestamp_seconds >= input.BC_MAX_REPORT_INTERVAL:
 
-        # update timestamp
+        #update timestamp
         previous_timestamp = current_timestamp
 
         '''
@@ -193,7 +180,7 @@ def report_ipv4(current_attackers):
         elif previous_attackers == current_attackers:
             return
         else:
-            for issuer, list_addr in current_attackers.iteritems():
+            for issuer, list_addr in current_attackers.iteritems( ):
                 for aux_issuer, aux_list_addr in previous_attackers.iteritems():
                     new_attackers = []
                     # update if there is a difference, otherwise do nothing
@@ -203,20 +190,22 @@ def report_ipv4(current_attackers):
                                 new_attackers.append(ip_addr)
                         current_attackers[issuer] = new_attackers
 
-            # update list of attackers
+            #update list of attackers
             previous_attackers = current_attackers
 
         # TODO: lookup the networks maintained by each AS and report individually
 
-        file_content = []
-        for issuer, attackers in current_attackers.iteritems():
 
-            # check: if there is nothing to publish, skip iteration
+        for issuer, attackers in current_attackers.iteritems( ):
+
+            #check: if there is nothing to publish, skip iteration
             if not attackers:
                 continue
 
+
+
             timestamp = current_timestamp.strftime(input.BC_TIMESTAMP_FORMAT)
-            hash = hashlib.sha256(issuer + "blacklist" + timestamp + "".join(str(i) for i in attackers)).hexdigest()
+            hash = hashlib.sha256(issuer+"blacklist"+timestamp+ "".join(str(i) for i in attackers)).hexdigest()
             body = {
                 "issuer": issuer,
                 "action": "blacklist",
@@ -224,57 +213,20 @@ def report_ipv4(current_attackers):
                 "addresses": attackers,
                 "hash": hash
             }
-            file_content.append(body)
-            '''
 
-            import ipfsapi
-            import json
 
-            location = '/home/rodrigues/shared/'
-            file_name = 'addresses' + str(datetime.now())
-            file = location+file_name
+            print ""
+            print "*" * 50
+            print "REPORTING ADDRESS(ES):"
+            print "Timestamp:", timestamp
+            print "Issuer:", issuer
+            print "Attacker(s):", hash#attackers
+            print "Action: blacklist"
+            print "Hash:", hash
+            print "*" * 50
 
-            try:
-                with open(file, 'w') as f:
-                    json.dump(body, f)
+            tx_hash = contract.transact(input.BC_TRANSACTION_TX).report_ipv4(str(body))
 
-                api = ipfsapi.connect('localhost', 5001)
-                hash = api.add(file)['Hash']
-            except:
-                pass
-            '''
-
-            print("")
-            print("*" * 50)
-            print("REPORTING ADDRESS(ES):")
-            print("Timestamp:", timestamp)
-            print("Issuer:", issuer)
-            print("Attacker(s):", hash)  # attackers
-            print("Action: blacklist")
-            print("Hash:", hash)
-            print("*" * 50)
-
-            # tx_hash = contract.transact(input.BC_TRANSACTION_TX).report_ipv4(str(body))
-        try:
-            with open(file_name, "w") as f:
-                f.write(json.dumps(file_content))
-                f.close()
-
-            # Add file to IPFS
-            ipfsHash = ipfsConn.ipfs_add(file_name)
-
-            # Remove created file
-            os.remove(file_name)
-
-            try:
-                # Add hash value to the blockchain
-                ethConn.setIPFSHash(ethConn.getOwnContract(), ipfsHash)
-            except:
-                print("Failure in creating transaction on the blockchain")
-
-        except:
-            print("Failure in adding file to IPFS")
-            pass
     return
 
 
@@ -295,78 +247,72 @@ def retrieve_ipv4():
     - require the 'literal_eval' to make the reply python-readable
     - if the reply is empty then there is nothing to retrieve
     '''
-    # msg = str(contract.call( {'from':input.BC_ACCOUNT_ADDRESS, 'to':contract.address} ).retrieve_ipv4( ))
+    msg = str(contract.call( {'from':input.BC_ACCOUNT_ADDRESS, 'to':contract.address} ).retrieve_ipv4( ))
 
-    for contract in ethConn.getContracts():
-        # Check contract for default value
-        if ethConn.getIPFSHash(contract) != 'initialHash':
-            # Get data from IPFS
-            msg = ipfsConn.ipfs_get(str(ethConn.getIPFSHash(contract)))
+    if not msg:
+        return
 
-            if not msg:
-                return
+    try:
+        msg = ast.literal_eval(msg)
+    except:
+        print "Error ast.literal"
+        return
 
-            try:
-                msg = ast.literal_eval(msg)
-            except:
-                print("Error ast.literal")
-                return
+    attackers_addresses = []
+    attackers_by_issuers = {}
+    issuer = None
+    action = None
+    valid = False
 
-            attackers_addresses = []
-            attackers_by_issuers = {}
-            issuer = None
-            action = None
-            valid = False
+    #log purposes
+    delta_ts_by_issuers = {}
 
-            # log purposes
-            delta_ts_by_issuers = {}
+    for key, value in msg.iteritems():
+        '''
+        Check if the message is recent
+        '''
+        if key == "timestamp":
+            msg_timestamp = datetime.strptime(value, input.BC_TIMESTAMP_FORMAT)
+            current_timestamp = datetime.now()
+            delta_timestamp_seconds = (current_timestamp - msg_timestamp).seconds
 
-            for key, value in msg.iteritems():
-                '''
-                Check if the message is recent
-                '''
-                if key == "timestamp":
-                    msg_timestamp = datetime.strptime(value, input.BC_TIMESTAMP_FORMAT)
-                    current_timestamp = datetime.now()
-                    delta_timestamp_seconds = (current_timestamp - msg_timestamp).seconds
+            '''
+            If the message is old -> ignore it
+            '''
 
-                    '''
-                    If the message is old -> ignore it
-                    '''
+            if delta_timestamp_seconds >= input.BC_MAX_RETRIEVE_INTERVAL:
+                break
+            else:
+                valid = True
 
-                    if delta_timestamp_seconds >= input.BC_MAX_RETRIEVE_INTERVAL:
-                        break
-                    else:
-                        valid = True
+        elif key == "addresses":
+            for ip_addr in value:
+                if ip_addr not in attackers_addresses:
+                    attackers_addresses.append(ip_addr)
 
-                elif key == "addresses":
-                    for ip_addr in value:
-                        if ip_addr not in attackers_addresses:
-                            attackers_addresses.append(ip_addr)
+        elif key == "issuer":
+            for addr in input.NET1_AS_NETWORK:
+                if IPAddress(value) in IPNetwork(addr):
+                    issuer = None
+                    break
+                else:
+                    issuer = value
+                    break
+        elif key == "action":
+            action = value
 
-                elif key == "issuer":
-                    for addr in input.NET1_AS_NETWORK:
-                        if IPAddress(value) in IPNetwork(addr):
-                            issuer = None
-                            break
-                        else:
-                            issuer = value
-                            break
-                elif key == "action":
-                    action = value
+        elif key == "hash":
+            hash = value
 
-                elif key == "hash":
-                    hash = value
+        #DEBUG
+        #try:
+        #    print issuer, attackers, valid
+        #except:
+        #    pass
 
-                # DEBUG
-                # try:
-                #    print issuer, attackers, valid
-                # except:
-                #    pass
-
-                if valid and issuer and attackers_addresses and action and hash:
-                    attackers_by_issuers[issuer] = attackers_addresses
-                    delta_ts_by_issuers[issuer] = delta_timestamp_seconds
+        if valid and issuer and attackers_addresses and action and hash:
+            attackers_by_issuers[issuer] = attackers_addresses
+            delta_ts_by_issuers[issuer] = delta_timestamp_seconds
 
     '''
     Check if 'issuers' has at least 1 report
@@ -382,34 +328,43 @@ def retrieve_ipv4():
         but do not confirm yet
         '''
         log_blocked_hosts = {hash: msg}
-        timestamp = current_timestamp.strftime(input.BC_TIMESTAMP_FORMAT)
+        timestamp = current_timestamp.strftime( input.BC_TIMESTAMP_FORMAT )
 
-        print("")
-        print("*" * 50)
-        print("RETRIEVING ADDRESS(ES):")
-        print("Timestamp (TS):", timestamp)
-        print("Delta TS (s):", delta_ts_by_issuers[issuer])
-        print("Issuer:", issuer)
-        print("Attacker(s):", attackers_by_issuers[issuer])
-        print("Action: blacklist")
-        print("*" * 50)
+        print ""
+        print "*" * 50
+        print "RETRIEVING ADDRESS(ES):"
+        print "Timestamp (TS):", timestamp
+        print "Delta TS (s):", delta_ts_by_issuers[issuer]
+        print "Issuer:", issuer
+        print "Attacker(s):", attackers_by_issuers[issuer]
+        print "Action: blacklist"
+        print "*" * 50
 
         return hash, attackers_by_issuers
     else:
         return None, None
 
-
 def confirm_addresses_block(hash_request, attackers):
     global log_blocked_hosts
 
-    # Update self-check
+    #Update self-check
     log_blocked_hosts = {hash_request: attackers}
-    timestamp = datetime.now().strftime(input.BC_TIMESTAMP_FORMAT)
-    hash_confirm = hashlib.sha256(str(hash_request) + str(timestamp)).hexdigest()
+    timestamp = datetime.now().strftime( input.BC_TIMESTAMP_FORMAT )
+    hash_confirm = hashlib.sha256(str(hash_request)+str(timestamp)).hexdigest( )
 
-    print("*" * 50)
-    print("CONFIRMATION ADDRESS(ES) BLOCKED:")
-    print(attackers)
-    print("Timestamp:", timestamp)
-    print("Hash:", hash_confirm)
-    print("*" * 50)
+    print "*" * 50
+    print "CONFIRMATION ADDRESS(ES) BLOCKED:"
+    print attackers
+    print "Timestamp:", timestamp
+    print "Hash:", hash_confirm
+    print "*" * 50
+
+
+
+
+
+
+
+
+
+
