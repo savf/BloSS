@@ -1,3 +1,5 @@
+from confidential import BC_ACCOUNT_PASSWORD
+
 #################################################
 #Controller Polling Interval (STATS) - in seconds
 #################################################
@@ -69,15 +71,16 @@ BC_CONTRACT_ABI = [{"constant":"false","inputs":[{"name":"x","type":"string"}],"
                    {"constant":"true","inputs":[],"name":"get_network","outputs":[{"name":"","type":"string"}],"payable":"false","type":"function"}]
 
 ###
-BC_CONTRACT_ADDRESS = '0xa8480e483e6e3007b4557b03402efee04b605c15'
+BC_CONTRACT_ADDRESS = '0x7cc7a2f1113165a92bb5fb657cac997261211f40'
 #BC_CONTRACT_ADDRESS = "0xb70b1450b7afeb50f68617297fbff6772a9aea11"
 ###
-BC_ACCOUNT_ADDRESS = "0xb9cadf3eaab8f71900e76fb7e606abbaf52e2cc6"
-#BC_ACCOUNT_ADDRESS = "0x7c490b5159ed034c21dfa29aa0b7c675e957b012"
-BC_ACCOUNT_PASSWORD = "123456"
+
 BC_ACCOUNT_TIME = 9999999
 ###
-BC_TRANSACTION_TX = {'from':BC_ACCOUNT_ADDRESS, 'gas': '4700000'}
+
+
+def transact_with_gas(account_address):
+    return {'from':account_address, 'gas': '4700000'}
 
 BC_AS_NETWORKS = {
     'ASN1': NET1_AS_NETWORK,
@@ -97,7 +100,7 @@ BC_TIMESTAMP_FORMAT = '%Y-%m-%d-%H:%M:%S'
 #InfluxDB (idb)
 #################################################
 
-DB_HOST = '172.10.15.10'
+DB_HOST = '172.10.15.31'
 DB_PORT = 8086
 DB_USER = 'root'
 DB_PASSWORD = 'root'

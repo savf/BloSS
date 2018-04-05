@@ -13,7 +13,7 @@ i.e., the 'controller.py' or other modules should not manage
  the 'contract' or the 'web3' API.
 '''
 
-global web3, contract
+global web3, contract, account_address
 
 '''
 To keep things up to date we check what is not up to date
@@ -64,6 +64,7 @@ def connect():
     global web3, contract
     global previous_attackers, previous_timestamp
     global log_blocked_hosts
+    global account_address
 
     previous_timestamp = None #initializing
     previous_attackers = None #initializing
@@ -77,8 +78,8 @@ def connect():
     '''
     Unlock account
     '''
-
-    web3.personal.unlockAccount(account=input.BC_ACCOUNT_ADDRESS, passphrase=input.BC_ACCOUNT_PASSWORD,
+    account_address = web3.eth.accounts[0]
+    web3.personal.unlockAccount(account=account_address, passphrase=input.BC_ACCOUNT_PASSWORD,
                                 duration=input.BC_ACCOUNT_TIME)
     '''
     Instantiate the contract
@@ -101,10 +102,10 @@ def set_network(msg):
     :return:
     '''
 
-    global contract
+    global contract, account_address
 
     try:
-        contract.transact( input.BC_TRANSACTION_TX ).set_network( msg )
+        contract.transact(input.transact_with_gas(account_address)).set_network( msg )
     except: #if something goes bad (e.g., contract is not instantiated)
         return None
     return True
@@ -120,9 +121,9 @@ def get_network():
 
     #TODO: REQUIRE ++TEST/REVIEW
 
-    global contract
+    global contract, account_address
     try:
-        network_addr = contract.call( {'from':input.BC_ACCOUNT_ADDRESS,'to':contract.address} ).get_network( )
+        network_addr = contract.call( {'from':account_address,'to':contract.address} ).get_network( )
         if network_addr:
             network_addr = json.loads( network_addr )
             #network_addr["ASN1"], network_addr["ASN2"]. network_addr["ASN1"]
@@ -143,7 +144,7 @@ def report_ipv4(current_attackers):
     :return:
     '''
 
-    global contract
+    global contract, account_address
     global previous_timestamp, previous_attackers
 
     '''
@@ -225,13 +226,13 @@ def report_ipv4(current_attackers):
             print "Hash:", hash
             print "*" * 50
 
-            tx_hash = contract.transact(input.BC_TRANSACTION_TX).report_ipv4(str(body))
+            tx_hash = contract.transact(input.transact_with_gas(account_address)).report_ipv4(str(body))
 
     return
 
 
 def retrieve_ipv4():
-    global contract
+    global contract, account_address
 
     '''
     Check if the contract was created
@@ -247,7 +248,7 @@ def retrieve_ipv4():
     - require the 'literal_eval' to make the reply python-readable
     - if the reply is empty then there is nothing to retrieve
     '''
-    msg = str(contract.call( {'from':input.BC_ACCOUNT_ADDRESS, 'to':contract.address} ).retrieve_ipv4( ))
+    msg = str(contract.call( {'from':account_address, 'to':contract.address} ).retrieve_ipv4( ))
 
     if not msg:
         return
