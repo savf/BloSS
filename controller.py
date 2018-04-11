@@ -284,6 +284,7 @@ class Controller(app_manager.RyuApp):
 
     def check_hosts_threshold(self, dpid):
         for issuer in self.hosts:
+            # TODO: Could be a bug, since function is not called..
             if issuer.get_avg_rx_traffic >= input.THRESHOLD_HOST_BLOCKING:
                 self.check_hosts_warning_rx_threshold()
                 bc.report_ipv4(self.suspicious_hosts)

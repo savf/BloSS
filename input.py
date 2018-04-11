@@ -61,7 +61,7 @@ NET3_ROUTER_MACADDR = "E4:8D:8C:B1:FB:37"
 #Data to connect to the blockchain (bc = blockchain)
 #################################################
 
-BC_HOST_ADDRESS = "localhost"
+BC_HOST_ADDRESS = "172.10.15.17"
 BC_PORT = "8545"
 ###
 BC_CONTRACT_ABI = [{"constant":"false","inputs":[{"name":"x","type":"string"}],"name":"set_network","outputs":[],"payable":"false","type":"function"},
@@ -100,7 +100,7 @@ BC_TIMESTAMP_FORMAT = '%Y-%m-%d-%H:%M:%S'
 #InfluxDB (idb)
 #################################################
 
-DB_HOST = '172.10.15.31'
+DB_HOST = '172.10.15.30'
 DB_PORT = 8086
 DB_USER = 'root'
 DB_PASSWORD = 'root'
