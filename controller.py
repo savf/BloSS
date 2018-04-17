@@ -8,7 +8,7 @@ from datetime import datetime
 
 import dbinflux as db
 import ddosbc as bc
-import hosts as host_mgmt
+from stalk import hosts as host_mgmt
 import input
 
 
@@ -60,9 +60,8 @@ class Controller(app_manager.RyuApp):
             self.datapaths[datapath.id] = datapath
 
     def get_datapath(self, dpid):
-        for id, value in self.datapaths.iteritems():
-            if dpid == id:
-                return self.datapaths[id]
+        if dpid in self.datapaths:
+            return self.datapaths[dpid]
 
     '''
     Handle OpenFlow state changes updating the list
