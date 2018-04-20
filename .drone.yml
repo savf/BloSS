@@ -1,0 +1,5 @@
+pipeline:
+  testing:
+    image: savf/python27_bloss
+    commands:
+      - nosetests -vv

@@ -4,13 +4,8 @@ import input
 import ast
 import json
 import hashlib
-import ConfigParser
-
+from configuration import Configuration
 from datetime import datetime
-
-
-config = ConfigParser.ConfigParser()
-config.read("../config.ini")
 
 
 class PollenCore:
@@ -21,37 +16,37 @@ class PollenCore:
         previous_attackers = None  # initializing
         log_blocked_hosts = {}
 
-        self.web3 = Web3(KeepAliveRPCProvider(host=input.BC_HOST_ADDRESS, port=input.BC_PORT))
+        self.config = Configuration()
 
-        '''
-        Unlock account
-        '''
+        self.web3 = Web3(
+            KeepAliveRPCProvider(host=self.config['BLOCKCHAIN']['HOST_ADDRESS'],
+                                 port=self.config['BLOCKCHAIN']['PORT']))
+
         self.account_address = self.web3.eth.accounts[0]
-        self.web3.personal.unlockAccount(account=self.account_address, passphrase=input.BC_ACCOUNT_PASSWORD,
-                                         duration=input.BC_ACCOUNT_TIME)
-        '''
-        Instantiate the contract
-        '''
-
+        self.web3.personal.unlockAccount(account=self.account_address,
+                                         passphrase=self.config['BLOCKCHAIN']
+                                         ['ACCOUNT_PASSPHRASE'],
+                                         duration=self.config['BLOCKCHAIN']
+                                         ['ACCOUNT_UNLOCK_DURATION'])
         contract = web3.eth.contract(
             abi=input.BC_CONTRACT_ABI,
             address=input.BC_CONTRACT_ADDRESS
         )
 
-
-    #TODO: compile/upload the contract here
+    # TODO: compile/upload the contract here
     def create_mitigation_contract(self):
         from solc import compile_source
 
         compiled = compile_source(input.BC_SOURCE_CODE)
 
         myContract = web3.eth.contract(
-            abi = compiled['<stdin>:MyToken']['abi'],
-            bytecode = compiled['<stdin>:MyToken']['bin'],
-            bytecode_runtime = compiled['<stdin>:MyToken']['bin-runtime'],
+            abi=compiled['<stdin>:MyToken']['abi'],
+            bytecode=compiled['<stdin>:MyToken']['bin'],
+            bytecode_runtime=compiled['<stdin>:MyToken']['bin-runtime'],
         )
 
-        trans_hash = MyContract.deploy(transaction={'from':web3.eth.accounts[0],'value':120})
+        trans_hash = MyContract.deploy(
+            transaction={'from': web3.eth.accounts[0], 'value': 120})
         # Wait for mining
         trans_receipt = web3.eth.getTransactionReceipt(trans_hash)
 

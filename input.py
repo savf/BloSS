@@ -100,7 +100,7 @@ BC_TIMESTAMP_FORMAT = '%Y-%m-%d-%H:%M:%S'
 #InfluxDB (idb)
 #################################################
 
-DB_HOST = '172.10.15.30'
+DB_HOST = '172.10.15.32'
 DB_PORT = 8086
 DB_USER = 'root'
 DB_PASSWORD = 'root'
