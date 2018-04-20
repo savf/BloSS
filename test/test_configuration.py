@@ -30,7 +30,7 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(self.config.get("SECTIONTHREE", "OPTIONTWO"),
                          "DE:AD:BE:EF:FE:ED")
         self.assertEqual(self.config.get("SECTIONTHREE", "OPTIONTHREE"),
-                         "192.168.0.2")
+                         "192.168.0.1")
 
     def test_itemget(self):
         self.assertEqual(self.config["SECTIONONE"]["OPTIONONE"],
