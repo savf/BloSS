@@ -3,3 +3,7 @@ pipeline:
     image: savf/python27_bloss
     commands:
       - nosetests -vv
+  telegram:
+    image: appleboy/drone-telegram
+    token: 588440069:AAEbS-J2oQJdcMET9f57--tD1h8cdoCZsWU
+    to: @savfr
