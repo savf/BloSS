@@ -6,4 +6,4 @@ pipeline:
   telegram:
     image: appleboy/drone-telegram
     token: 588440069:AAEbS-J2oQJdcMET9f57--tD1h8cdoCZsWU
-    to: @savfr
+    to: savfr
