@@ -1,5 +1,3 @@
-from confidential import BC_ACCOUNT_PASSWORD
-
 #################################################
 #Controller Polling Interval (STATS) - in seconds
 #################################################
@@ -71,7 +69,7 @@ BC_CONTRACT_ABI = [{"constant":"false","inputs":[{"name":"x","type":"string"}],"
                    {"constant":"true","inputs":[],"name":"get_network","outputs":[{"name":"","type":"string"}],"payable":"false","type":"function"}]
 
 ###
-BC_CONTRACT_ADDRESS = '0x7cc7a2f1113165a92bb5fb657cac997261211f40'
+BC_CONTRACT_ADDRESS = '0x1e568444d8d33c46d14136fde8e2e07a2cfdd8f9'
 #BC_CONTRACT_ADDRESS = "0xb70b1450b7afeb50f68617297fbff6772a9aea11"
 ###
 

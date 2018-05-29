@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys, getopt
+import getopt
+import sys
 
 from ryu.cmd import manager
+
+from bloss.manager import BloSS
 
 
 def main(argv):
@@ -23,6 +26,7 @@ def main(argv):
         if opt in ("-c", "--controller"):
             sys.argv.append(arg)
 
+    BloSS()
     manager.main()
 
 

@@ -158,3 +158,5 @@ fabric.properties
 
 # Miscellaneous files
 miscellaneous/*
+exportToHTML/*
+legacy/*
