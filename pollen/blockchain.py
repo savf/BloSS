@@ -54,7 +54,7 @@ class PollenBlockchain:
                 try:
                     contract_source_code = f.read()
                     return compile_source(contract_source_code)
-                except (ValueError, ContractsNotFound):
+                except (ValueError, ContractsNotFound) as e:
                     self._logger.error("Unable to compile contract source code")
                     return None
         return None
