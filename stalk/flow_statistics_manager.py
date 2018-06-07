@@ -1,12 +1,12 @@
 from collections import defaultdict
 
 
-class Flow:
+class Flow(object):
     def __init__(self, source=None, destination=None, byte_count=0):
-        self._source = source
-        self._destination = destination
-        self._byte_count = byte_count
-        self._mbps = 0
+        self._source = self.source = source
+        self._destination = self.destination = destination
+        self._byte_count = self.byte_count = byte_count
+        self._mbps = self.mbps = 0
 
     def __hash__(self):
         return hash((self.source, self.destination))
@@ -61,14 +61,15 @@ class FlowStatistics:
         if flow in datapath:
             return datapath[datapath.index(flow)]
         else:
-            return Flow()
+            return self._add_flow(datapath_id, source, destination, 0)
 
     def get_flows(self, datapath_id):
         return self._datapaths[datapath_id]
 
-    def add_flow(self, datapath_id, source, destination, byte_count):
+    def _add_flow(self, datapath_id, source, destination, byte_count):
         flow = Flow(source, destination, byte_count)
         self._datapaths[datapath_id].append(flow)
+        return flow
 
 
 class FlowStatisticsManager:

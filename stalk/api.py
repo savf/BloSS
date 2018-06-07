@@ -1,10 +1,10 @@
-import logging
+import json
 
 from flask import Flask, request
 from flask_restful import abort
 
-from logger import Logger
 from configuration import Configuration
+from logger import Logger
 from pollen.attack_reporting import AttackReporting
 
 logger = Logger("Stalk")
@@ -19,13 +19,13 @@ stalk_controller = None
 def mitigate():
     if not request.json:
         abort(400, message="No attack reports provided")
-    json_data = request.get_json(force=True)
+    json_data = json.loads(request.get_json(force=True))
     attack_report = (attack_reporting
                      .parse_attack_report_message(json_data))
     if stalk_controller is not None:
         stalk_controller.block_attackers(attack_report)
     else:
-        LOG.error("Stalk controller not configured")
+        logger.error("Stalk controller not configured")
         return "Stalk controller not configured", 500
     return "Accepted attackers for blocking", 202
 

@@ -15,6 +15,7 @@ class Configuration:
 
     def __init__(self):
         self.config_parser = ConfigParser.ConfigParser()
+        self.config_parser.optionxform = str
         self.config_parser.read(CONFIG_PATH)
 
     def __getitem__(self, section):
@@ -31,7 +32,7 @@ class Configuration:
     def set(self, section, option, value):
         if not self.config_parser.has_section(section):
             self.config_parser.add_section(section)
-        self.config_parser.set(section, option, value)
+        self.config_parser.set(section, option, str(value))
 
         try:
             with open(CONFIG_PATH, 'w') as f:

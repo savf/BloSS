@@ -1,6 +1,6 @@
 import ConfigParser
 import unittest
-
+import mock
 import paths
 from configuration import Configuration
 
@@ -56,3 +56,17 @@ class TestConfiguration(unittest.TestCase):
                          "192.168.0.1")
         self.assertEqual(self.config['SECTIONTWO']['FORMAT'],
                          "%(asctime)s:%(name)s:%(levelname)s:%(message)s")
+
+    def test_set_string(self):
+        with mock.patch('configuration.open',
+                        mock.mock_open()) as m:
+            self.config.set('SECTIONONE', 'OPTIONFIVE', '2342')
+        m.assert_called_once_with(paths.CONFIG_PATH, 'w')
+        self.assertEqual(self.config['SECTIONONE']['OPTIONFIVE'], 2342)
+
+    def test_set_integer(self):
+        with mock.patch('configuration.open',
+                        mock.mock_open()) as m:
+            self.config.set('SECTIONONE', 'OPTIONFIVE', 2342)
+        m.assert_called_once_with(paths.CONFIG_PATH, 'w')
+        self.assertEqual(self.config['SECTIONONE']['OPTIONFIVE'], 2342)

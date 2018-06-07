@@ -56,5 +56,5 @@ class TestPollenBlockchain(unittest.TestCase):
                                   + '/pollen/../test/test_report.sol', 'r')
         # The bytecodes differ on the last 34 bytes (68 characters) due to
         # metadata differences in different versions of the solidity compiler
-        self.assertEqual(result[result.keys()[0]]['bin'][:-68],
-                         contract_bin[:-68])
+        self.assertEqual(len(result[result.keys()[0]]['bin']),
+                         len(contract_bin))

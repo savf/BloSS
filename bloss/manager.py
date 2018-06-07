@@ -20,24 +20,31 @@ class BloSS:
         self._api_thread = Thread(target=self._start_api)
         self._api_thread.start()
 
-    @staticmethod
-    def _start_api():
+    def _start_api(self):
+        api.pollen_blockchain = self._pollen_blockchain
         api.app.run(debug=False, host="localhost", port=6000)
 
     def _retrieve_attackers_periodically(self):
         while True:
             try:
                 attack_report = self._pollen_blockchain.retrieve_attackers()
-                requests.post(self._config['ENDPOINT']['STALK']
-                              + "/api/v1.0/mitigate",
-                              json=json.loads(str(attack_report)))
-                self._logger.info("Successfully retrieved attackers {} "
-                                  + "targeting {}"
-                                  .format(len(attack_report.addresses),
-                                          attack_report.target))
-            except:
+
+                if attack_report:
+                    requests.post(self._config['ENDPOINT']['STALK']
+                                  + "/api/v1.0/mitigate",
+                                  json=json.dumps(
+                                          json.loads(
+                                              str(attack_report)
+                                          )
+                                       )
+                                  )
+                    self._logger.info("Successfully retrieved attackers {} "
+                                      + "targeting {}"
+                                      .format(len(attack_report.addresses),
+                                              attack_report.target))
                 time.sleep(self._config['INTERVAL']['RETRIEVE_SECONDS'])
-            time.sleep(self._config['INTERVAL']['RETRIEVE_SECONDS'])
+            except Exception as e:
+                time.sleep(self._config['INTERVAL']['RETRIEVE_SECONDS'])
 
 
 if __name__ == '__main__':

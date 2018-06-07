@@ -6,18 +6,18 @@ class AttackReportingException(Exception):
     def __init__(self, message):
         self.message = message
 
-        def __str__(self):
-            return repr(self.message)
+    def __str__(self):
+        return repr(self.message)
 
 
-class AttackReport:
-    def __init__(self,
-                 target, action, timestamp, addresses,
-                 hash=None):
-        self._target = target
-        self._action = action
-        self._timestamp = timestamp
-        self._addresses = addresses
+class AttackReport(object):
+    def __init__(self, target, action, timestamp,
+                 subnetwork, addresses, hash=None):
+        self._target = self.target = target
+        self._action = self.action = action
+        self._timestamp = self.timestamp = timestamp
+        self._subnetwork = self.subnetwork = subnetwork
+        self._addresses = self.addresses = addresses
         if (hash is None and target is not None
                 and action is not None
                 and timestamp is not None):
@@ -28,8 +28,9 @@ class AttackReport:
     def __str__(self):
         dict_representation = {"target": self.target,
                                "action": self.action,
-                               "timestamp": str(self.timestamp),
-                               "addresses": self.addresses,
+                               "timestamp": self.timestamp,
+                               "subnetwork": self.subnetwork,
+                               "addresses": list(self.addresses),
                                "hash": self._hash}
         return json.dumps(dict_representation)
 
@@ -41,6 +42,7 @@ class AttackReport:
             return (self.target == other.target and
                     self.action == other.action and
                     self.timestamp == other.timestamp and
+                    self.subnetwork == other.subnetwork and
                     self.addresses == other.addresses)
         except AttributeError:
             return NotImplemented
@@ -49,7 +51,10 @@ class AttackReport:
         return not self.__eq__(other)
 
     def _calculate_hash(self):
-        self._hash = hash((self.target, self.action, self.timestamp))
+        self._hash = hash((self.target,
+                           self.action,
+                           self.subnetwork,
+                           self.timestamp))
 
     @property
     def target(self):
@@ -76,6 +81,14 @@ class AttackReport:
         self._timestamp = value
 
     @property
+    def subnetwork(self):
+        return self._subnetwork
+
+    @subnetwork.setter
+    def subnetwork(self, value):
+        self._subnetwork = value
+
+    @property
     def addresses(self):
         return self._addresses
 
@@ -87,80 +100,77 @@ class AttackReport:
 class AttackReporting:
     def __init__(self, config):
         self._config = config
-        self._last_report_timestamp = None
-        self._last_attack_reports_by_target = {}
+        self._last_report_timestamp = datetime.now()
+        self._last_attack_reports = []
 
-    def report(self, attack_reports_by_target):
-        if not attack_reports_by_target:
+    def process(self, attack_reports):
+        if not attack_reports:
             raise AttackReportingException('No attack reports provided.')
 
         current_timestamp = datetime.now()
-        if not self._last_report_timestamp:
-            self._last_report_timestamp = current_timestamp
         timespan_since_last_report = (current_timestamp
                                       - self._last_report_timestamp).seconds
 
-        if (timespan_since_last_report
-                > self._config['INTERVAL']['MAX_REPORT_SECONDS']):
-            self._last_attack_reports_by_target = {}
+        max_interval = self._config['INTERVAL']['MAX_REPORT_SECONDS']
+        min_interval = self._config['INTERVAL']['MIN_REPORT_SECONDS']
 
-        if (timespan_since_last_report
-                >= self._config['INTERVAL']['MIN_REPORT_SECONDS']):
+        if timespan_since_last_report > max_interval:
+            self._last_attack_reports = []
 
+        if timespan_since_last_report >= min_interval:
             self._last_report_timestamp = current_timestamp
 
-            if not self._last_attack_reports_by_target:
-                self._last_attack_reports_by_target = attack_reports_by_target
-            elif self._last_attack_reports_by_target == attack_reports_by_target:
-                return
+            if not self._last_attack_reports:
+                self._last_attack_reports = attack_reports
+            elif self._last_attack_reports == attack_reports:
+                raise AttackReportingException('Reports already submitted.')
             else:
-                for attack_report in attack_reports_by_target:
-                    if attack_report.target in self._last_attack_reports_by_target:
-                        target = attack_report.target
-                        old_attackers = (
-                                set(attack_report.addresses)
-                                & set(self._last_attack_reports_by_target[target]
-                                      .addresses)
-                        )
-                        attack_report.addresses = list(
-                            set(attack_report.addresses) - old_attackers
-                        )
+                for report in attack_reports:
+                    for last_report in self._last_attack_reports:
+                        if (report.target == last_report.target and
+                                report.subnetwork == last_report.subnetwork):
+                            old_attackers = (report.addresses
+                                             & last_report.addresses)
+                            report.addresses = (report.addresses
+                                                - old_attackers)
 
-                self._last_attack_reports_by_target = attack_reports_by_target
-        return self._last_attack_reports_by_target
+                self._last_attack_reports = attack_reports
+        else:
+            raise AttackReportingException('Reporting frequency too high.')
+        return self._last_attack_reports
 
     def parse_attack_report_message(self, message):
-        message_keys = ["target", "action", "timestamp", "addresses", "hash"]
+        message_keys = ["target", "action", "timestamp",
+                        "subnetwork", "addresses", "hash"]
         if any(key not in message for key in message_keys):
             raise AttackReportingException('Attack report message malformed.')
-        target = action = message_timestamp = attackers_addresses = hash = None
+        timestamp_format = self._config['DEFAULT']['TIMESTAMP_FORMAT']
+        target = action = timestamp = subnetwork = addresses = hash = None
         for key, value in message.iteritems():
             if key == "target":
                 target = value
             elif key == "action":
                 action = value
             elif key == "timestamp":
-                message_timestamp = (datetime
-                                     .strptime(value,
-                                               self._config['DEFAULT']
-                                               ['TIMESTAMP_FORMAT']))
+                timestamp = datetime.strptime(value, timestamp_format)
                 current_timestamp = datetime.now()
                 delta_timestamp_seconds = (current_timestamp
-                                           - message_timestamp).seconds
-
+                                           - timestamp).total_seconds()
                 if (delta_timestamp_seconds
                         >= self._config['INTERVAL']
                                        ['MESSAGE_LIFETIME_SECONDS']):
                     return None
-
+            elif key == "subnetwork":
+                subnetwork = str(value)
             elif key == "addresses":
-                attackers_addresses = list(set(value))
+                addresses = set(value)
 
             elif key == "hash":
                 hash = value
 
         return AttackReport(target=target,
                             action=action,
-                            timestamp=message_timestamp,
-                            addresses=attackers_addresses,
+                            timestamp=timestamp.strftime(timestamp_format),
+                            subnetwork=subnetwork,
+                            addresses=addresses,
                             hash=hash)

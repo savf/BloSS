@@ -29,7 +29,10 @@ class SimpleRouter(app_manager.RyuApp):
         super(SimpleRouter, self).__init__(*args, **kwargs)
         self._config = Configuration()
         self._logger = Logger("SimpleRouter")
-        self._ip_to_mac_mappings = self._config['NETWORK']['IP_TO_MAC_MAPPINGS']
+        addresses = self._config['NETWORK']['ADDRESSES']
+        self._ip_to_mac_mappings = {}
+        for _, address_mappings in addresses.iteritems():
+            self._ip_to_mac_mappings.update(address_mappings)
         self._ip_to_mac_mappings[self._config['NETWORK']['ROUTER_IP']] =\
             self._config['NETWORK']['ROUTER_MAC']
         self._out_ports = self._config['NETWORK']['OUT_PORTS']

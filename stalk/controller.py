@@ -29,8 +29,7 @@ class Controller(app_manager.RyuApp):
         self._flow_statistics_manager = FlowStatisticsManager(self._config)
         self._hosts = Hosts(self._config)
         self._flow_statistics_thread = hub.spawn(self._request_flow_statistics)
-        self._api_thread = Thread(target=self._start_api)
-        self._api_thread.start()
+        self._api_thread = hub.spawn(self._start_api)
 
     def _start_api(self):
         api.stalk_controller = self
@@ -55,7 +54,7 @@ class Controller(app_manager.RyuApp):
     def switch_features_handler(self, ev):
         datapath = ev.msg.datapath
         if datapath.id not in self._datapaths:
-            self._datapaths[datapath.id] = datapath
+            self._datapaths[str(datapath.id)] = datapath
 
     @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER,
                                                 DEAD_DISPATCHER])
@@ -119,6 +118,10 @@ class Controller(app_manager.RyuApp):
                                     match=match,
                                     instructions=instructions)
             datapath.send_msg(mod)
+            hash_to_block = {"hash": hash(attack_report)}
+            requests.post(
+                self._config['ENDPOINT']['BLOSS'] + '/api/v1.0/set_blocked',
+                json=json.dumps(hash_to_block))
             self._logger.info("Blocked address {} targeting {}"
                               .format(attacker.ip_address,
                                       attack_report.target))
@@ -131,16 +134,16 @@ class Controller(app_manager.RyuApp):
     def find_and_report_attackers(self, datapath_id):
         attack_reports = self._hosts.detect_ongoing_attacks(datapath_id)
         if len(attack_reports) > 0:
-            dict_reports = {}
+            json_reports = []
             count = 0
             for report in attack_reports:
-                dict_reports[report.target] = json.loads(str(report))
+                json_reports.append(json.loads(str(report)))
                 count += len(report.addresses)
             requests.post(
                 self._config['ENDPOINT']['BLOSS'] + '/api/v1.0/report',
-                json.dumps(dict_reports))
+                json=json.dumps(json_reports))
             self._database.update_reported_addresses(datapath_id, count)
-            self._led_hotfix(count)
+            # self._led_hotfix(count)
 
     # TODO: Make this obsolete by fixing the LED problem
     @staticmethod

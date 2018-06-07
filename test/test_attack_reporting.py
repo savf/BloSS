@@ -9,9 +9,10 @@ class TestAttackReporting(unittest.TestCase):
 
     def test_attack_report_equality(self):
         timestamp = datetime.datetime.now()
+        subnetwork = "192.168.20.0/24"
         addresses = ["192.168.20.1", "192.168.20.2", "192.168.20.3"]
         report_one = AttackReport("192.168.10.1", "blackhole",
-                                  timestamp, addresses)
+                                  timestamp, subnetwork, addresses)
         report_two = AttackReport("192.168.10.1", "blackhole",
-                                  timestamp, addresses)
+                                  timestamp, subnetwork, addresses)
         self.assertTrue(report_one == report_two)
