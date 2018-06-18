@@ -147,18 +147,19 @@ class PollenBlockchain:
             return None
         return True
 
-    def set_blocked(self, attack_report_hash):
+    def set_blocked(self, attack_report_hash, blocked=True):
         try:
-            tx_hash = (self.system_contract
-                       .transact(self._transact_with_gas())
-                       .setBlocked(str(attack_report_hash)))
-            for _ in range(1, 3):
-                tx_receipt = self.web3.eth.getTransactionReceipt(tx_hash)
-                if tx_receipt is not None:
-                    self._logger.info("Blocked addresses of attack report {}"
-                                      .format(str(attack_report_hash)))
-                    return
-                time.sleep(1)
+            if not self._is_blocked(attack_report_hash):
+                tx_hash = (self.system_contract
+                           .transact(self._transact_with_gas())
+                           .setBlocked(str(attack_report_hash), blocked))
+                for _ in range(1, 3):
+                    tx_receipt = self.web3.eth.getTransactionReceipt(tx_hash)
+                    if tx_receipt is not None:
+                        self._logger.info("Blocked attack report with hash {}"
+                                          .format(str(attack_report_hash)))
+                        return
+                    time.sleep(1)
         except:
             self._logger.error("Can't set hash to blocked on blockchain")
         return

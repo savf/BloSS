@@ -72,10 +72,10 @@ class Host:
     def set_rx_traffic(self, source, traffic):
         current_time = datetime.now()
         delta_time = (current_time - self.last_rx_reset).seconds
-
         if delta_time > self._config['THRESHOLD']['MAX_AVG_RX_WINDOW_SECONDS']:
             self.last_rx_reset = current_time
             self.rx_traffic = [traffic]
+            self.rx_traffic_per_source = dict()
             self.rx_traffic_per_source[source] = [traffic]
         else:
             self.rx_traffic.append(traffic)
@@ -93,6 +93,7 @@ class Host:
         if delta_time > self._config['THRESHOLD']['MAX_AVG_TX_WINDOW_SECONDS']:
             self.last_tx_reset = current_time
             self.tx_traffic = [traffic]
+            self.tx_traffic_per_destination = dict()
             self.tx_traffic_per_destination[destination] = [traffic]
         else:
             self.tx_traffic.append(traffic)

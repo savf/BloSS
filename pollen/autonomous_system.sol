@@ -30,10 +30,10 @@ contract AutonomousSystem {
         storedData = attackReport_;
     }
 
-    function setBlocked(string hash_)
+    function setBlocked(string hash_, bool blocked_)
         onlyBy(owner)
     {
-        blockedAttackers[hash_] = true;
+        blockedAttackers[hash_] = blocked_;
     }
 
     function isBlocked(string hash_) constant returns (bool) {

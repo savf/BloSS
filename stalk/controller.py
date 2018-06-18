@@ -1,5 +1,4 @@
 import json
-from threading import Thread
 
 import requests
 from ryu.base import app_manager
@@ -45,16 +44,12 @@ class Controller(app_manager.RyuApp):
             if self._config['INTERVAL']['TRAFFIC_STATS_POLLING_SECONDS'] > 0:
                 hub.sleep(self._config['INTERVAL']
                                       ['TRAFFIC_STATS_POLLING_SECONDS'])
+            else:
+                hub.sleep(1)
 
     def get_datapath(self, datapath_id):
         if datapath_id in self._datapaths:
             return self._datapaths[datapath_id]
-
-    @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
-    def switch_features_handler(self, ev):
-        datapath = ev.msg.datapath
-        if datapath.id not in self._datapaths:
-            self._datapaths[str(datapath.id)] = datapath
 
     @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER,
                                                 DEAD_DISPATCHER])
@@ -62,10 +57,10 @@ class Controller(app_manager.RyuApp):
         datapath = ev.datapath
         if ev.state == MAIN_DISPATCHER:
             if datapath.id not in self._datapaths:
-                self._datapaths[datapath.id] = datapath
+                self._datapaths[str(datapath.id)] = datapath
         elif ev.state == DEAD_DISPATCHER:
             if datapath.id in self._datapaths:
-                del self._datapaths[datapath.id]
+                del self._datapaths[str(datapath.id)]
 
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
@@ -94,10 +89,14 @@ class Controller(app_manager.RyuApp):
         self.find_and_report_attackers(datapath_id)
 
     def block_attackers(self, attack_report):
+        self._logger.debug("Started blocking for attack report {}"
+                           .format(hash(attack_report)))
         blocked_addresses_by_datapath_id = {}
         for attacker_address in attack_report.addresses:
             attacker = self._hosts.get_host(ip_address=attacker_address)
             datapath = self.get_datapath(attacker.datapath_id)
+            if not datapath:
+                continue
             parser = datapath.ofproto_parser
 
             match = parser.OFPMatch(ipv4_dst=attack_report.target,

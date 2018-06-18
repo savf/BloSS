@@ -16,8 +16,10 @@ class BloSS:
         self._logger = Logger("BloSS")
         self._pollen_blockchain = PollenBlockchain()
         retrieval_thread = Thread(target=self._retrieve_attackers_periodically)
+        retrieval_thread.daemon = True
         retrieval_thread.start()
         self._api_thread = Thread(target=self._start_api)
+        self._api_thread.daemon = True
         self._api_thread.start()
 
     def _start_api(self):
@@ -38,8 +40,8 @@ class BloSS:
                                           )
                                        )
                                   )
-                    self._logger.info("Successfully retrieved attackers {} "
-                                      + "targeting {}"
+                    self._logger.info("Successfully retrieved {} attackers "
+                                      "targeting {}"
                                       .format(len(attack_report.addresses),
                                               attack_report.target))
                 time.sleep(self._config['INTERVAL']['RETRIEVE_SECONDS'])

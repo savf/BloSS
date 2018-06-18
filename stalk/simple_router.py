@@ -10,6 +10,7 @@ from ryu.lib.packet import arp
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ipv4
 from ryu.lib.packet.arp import arp
+from ryu.lib.packet.arp import ARP_HW_TYPE_ETHERNET
 from ryu.lib.packet.ethernet import ethernet
 from ryu.lib.packet.ipv4 import ipv4
 from ryu.lib.packet.packet import Packet
@@ -183,7 +184,10 @@ class SimpleRouter(app_manager.RyuApp):
         in_port = datapath.ofproto.OFPP_CONTROLLER
 
         e = ethernet(destination_mac, source_mac, ether.ETH_TYPE_ARP)
-        a = arp(1, 0x0800, 6, 4, opcode,
+        a = arp(ARP_HW_TYPE_ETHERNET, ether.ETH_TYPE_IP,
+                6,  # ethernet mac address length
+                4,  # ipv4 address length
+                opcode,
                 source_mac, source_ip,
                 destination_mac, destination_ip)
         p = Packet()
