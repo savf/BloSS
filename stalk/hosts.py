@@ -50,9 +50,6 @@ class Host:
         self.attackers = Attackers()
         self._config = config
 
-        self.rx_traffic = []
-        self.tx_traffic = []
-
         self.rx_traffic_per_source = {}
         self.tx_traffic_per_destination = {}
 
@@ -66,19 +63,19 @@ class Host:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def _safedivision(self, dividend, divisor):
+    @staticmethod
+    def _safedivision(dividend, divisor):
         return dividend / max(1.0, divisor)
 
     def set_rx_traffic(self, source, traffic):
         current_time = datetime.now()
         delta_time = (current_time - self.last_rx_reset).seconds
+
         if delta_time > self._config['THRESHOLD']['MAX_AVG_RX_WINDOW_SECONDS']:
             self.last_rx_reset = current_time
-            self.rx_traffic = [traffic]
             self.rx_traffic_per_source = dict()
             self.rx_traffic_per_source[source] = [traffic]
         else:
-            self.rx_traffic.append(traffic)
             if source in self.rx_traffic_per_source:
                 self.rx_traffic_per_source[source].append(traffic)
             else:
@@ -92,31 +89,33 @@ class Host:
 
         if delta_time > self._config['THRESHOLD']['MAX_AVG_TX_WINDOW_SECONDS']:
             self.last_tx_reset = current_time
-            self.tx_traffic = [traffic]
             self.tx_traffic_per_destination = dict()
             self.tx_traffic_per_destination[destination] = [traffic]
         else:
-            self.tx_traffic.append(traffic)
             if destination in self.tx_traffic_per_destination:
                 self.tx_traffic_per_destination[destination].append(traffic)
             else:
                 self.tx_traffic_per_destination[destination] = [traffic]
 
     def get_avg_tx_traffic(self):
-        return self._safedivision(sum(self.tx_traffic),
-                                  float(len(self.tx_traffic)))
+        result = 0.0
+        for destination, _ in self.tx_traffic_per_destination.iteritems():
+            result += self._get_avg_tx_traffic_per_destination(destination)
+        return result
 
     def get_avg_rx_traffic(self):
-        return self._safedivision(sum(self.rx_traffic),
-                                  float(len(self.rx_traffic)))
+        result = 0.0
+        for source, _ in self.rx_traffic_per_source.iteritems():
+            result += self._get_avg_rx_traffic_per_source(source)
+        return result
 
-    def get_avg_tx_traffic_per_destination(self, destination):
+    def _get_avg_tx_traffic_per_destination(self, destination):
         return self._safedivision(
             sum(self.tx_traffic_per_destination[destination]),
             float(len(self.tx_traffic_per_destination[destination]))
         )
 
-    def get_avg_rx_traffic_per_source(self, source):
+    def _get_avg_rx_traffic_per_source(self, source):
         return self._safedivision(
             sum(self.rx_traffic_per_source[source]),
             float(len(self.rx_traffic_per_source[source]))
@@ -126,7 +125,7 @@ class Host:
         if (self.get_avg_rx_traffic()
                 >= self._config['THRESHOLD']['WARNING_MBPS']):
             for source, traffic in self.rx_traffic_per_source.iteritems():
-                if (self.get_avg_rx_traffic_per_source(source)
+                if (self._get_avg_rx_traffic_per_source(source)
                         >= self._config['THRESHOLD']['SINGLE_CONNECTION_MBPS']):
                     self.attackers.add_address(source)
                 elif source in self.attackers:
@@ -171,14 +170,14 @@ class Hosts:
         inbound_traffic = 0.0
         for _, hosts in self._hosts.iteritems():
             for host in hosts:
-                inbound_traffic += sum(host.rx_traffic)
+                inbound_traffic += host.get_avg_rx_traffic()
         return inbound_traffic
 
     def get_total_outbound_traffic(self):
         outbound_traffic = 0.0
         for _, hosts in self._hosts.iteritems():
             for host in hosts:
-                outbound_traffic += sum(host.tx_traffic)
+                outbound_traffic += host.get_avg_tx_traffic()
         return outbound_traffic
 
     def detect_ongoing_attacks(self, datapath_id):

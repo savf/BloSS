@@ -19,8 +19,7 @@ class Logger:
         file_handler.setFormatter(self._log_formatter)
         self._log = logging.getLogger(name_without_spaces)
         log_level = eval(self._config['LOG']['LEVEL'])
-        logging.getLogger("urllib3").setLevel(log_level)
-        logging.getLogger("ryu").setLevel(log_level)
+        logging.getLogger().setLevel(log_level)
         self._log.setLevel(log_level)
         self._log.addHandler(file_handler)
 

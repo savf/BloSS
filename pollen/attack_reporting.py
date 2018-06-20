@@ -119,25 +119,31 @@ class AttackReporting:
 
         if timespan_since_last_report >= min_interval:
             self._last_report_timestamp = current_timestamp
+            filtered_reports = []
 
             if not self._last_attack_reports:
-                self._last_attack_reports = attack_reports
+                self._last_attack_reports = filtered_reports = attack_reports
             elif self._last_attack_reports == attack_reports:
                 raise AttackReportingException('Reports already submitted.')
             else:
                 for report in attack_reports:
+                    exclude = False
                     for last_report in self._last_attack_reports:
                         if (report.target == last_report.target and
                                 report.subnetwork == last_report.subnetwork):
                             old_attackers = (report.addresses
                                              & last_report.addresses)
-                            report.addresses = (report.addresses
-                                                - old_attackers)
-
+                            if not old_attackers == report.addresses:
+                                report.addresses = (report.addresses
+                                                    - old_attackers)
+                            else:
+                                exclude = True
+                    if not exclude:
+                        filtered_reports.append(report)
                 self._last_attack_reports = attack_reports
         else:
             raise AttackReportingException('Reporting frequency too high.')
-        return self._last_attack_reports
+        return filtered_reports
 
     def parse_attack_report_message(self, message):
         message_keys = ["target", "action", "timestamp",

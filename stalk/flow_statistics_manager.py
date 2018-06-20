@@ -1,8 +1,10 @@
 from collections import defaultdict
+from datetime import datetime
 
 
 class Flow(object):
     def __init__(self, source=None, destination=None, byte_count=0):
+        self._last_byte_count_write = datetime.now()
         self._source = self.source = source
         self._destination = self.destination = destination
         self._byte_count = self.byte_count = byte_count
@@ -17,6 +19,20 @@ class Flow(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def _bytes_to_mbps(self, bytes):
+        return self._safedivision(
+            (bytes / 1024.0 / 1024.0) * 8,
+            (datetime.now() - self._last_byte_count_write).seconds
+        )
+
+    @staticmethod
+    def clamp(value, minimum, maximum):
+        return max(min(maximum, value), minimum)
+
+    @staticmethod
+    def _safedivision(dividend, divisor):
+        return dividend / max(1.0, divisor)
 
     @property
     def source(self):
@@ -40,7 +56,11 @@ class Flow(object):
 
     @byte_count.setter
     def byte_count(self, value):
+        delta_byte_count = value - self._byte_count
+        self.mbps = self._bytes_to_mbps(delta_byte_count)
+        self.mbps = self.clamp(self.mbps, 0.0, 100.0)
         self._byte_count = value
+        self._last_byte_count_write = datetime.now()
 
     @property
     def mbps(self):
@@ -77,29 +97,17 @@ class FlowStatisticsManager:
         self._flow_statistics = FlowStatistics()
         self._config = config
 
-    def _bytes_to_mbps(self, bytes):
-        return (((bytes / 1024.0 / 1024.0) * 8)
-                / self._config['INTERVAL']['TRAFFIC_STATS_POLLING_SECONDS'])
-
-    @staticmethod
-    def clamp(value, minimum, maximum):
-        return max(min(maximum, value), minimum)
-
-    def calculate_bandwidth_per_flow(self, datapath_id, statistics):
+    def update_traffic_per_flow(self, datapath_id, statistics):
         for statistic in statistics:
             try:
                 flow = (self._flow_statistics
                         .get_flow(datapath_id,
                                   statistic.match['ipv4_src'],
                                   statistic.match['ipv4_dst']))
-            except:
+            except Exception as e:
                 continue
 
-            delta_byte_count = statistic.byte_count - flow.byte_count
             flow.byte_count = statistic.byte_count
-            mbps = self._bytes_to_mbps(delta_byte_count)
-            self.clamp(mbps, 0.0, 50.0)
-            flow.mbps = mbps
 
     def get_flows(self, datapath_id):
         return self._flow_statistics.get_flows(datapath_id)

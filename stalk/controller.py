@@ -28,6 +28,7 @@ class Controller(app_manager.RyuApp):
         self._flow_statistics_manager = FlowStatisticsManager(self._config)
         self._hosts = Hosts(self._config)
         self._flow_statistics_thread = hub.spawn(self._request_flow_statistics)
+        self._blocked_attack_reports = []
         self._api_thread = hub.spawn(self._start_api)
 
     def _start_api(self):
@@ -66,8 +67,8 @@ class Controller(app_manager.RyuApp):
     def _flow_stats_reply_handler(self, ev):
         datapath_id = ev.msg.datapath.id
 
-        self._flow_statistics_manager.calculate_bandwidth_per_flow(datapath_id,
-                                                                   ev.msg.body)
+        self._flow_statistics_manager.update_traffic_per_flow(datapath_id,
+                                                              ev.msg.body)
         flows = self._flow_statistics_manager.get_flows(datapath_id)
         for flow in flows:
             source_host = self._hosts.get_host(ip_address=flow.source)
@@ -117,10 +118,6 @@ class Controller(app_manager.RyuApp):
                                     match=match,
                                     instructions=instructions)
             datapath.send_msg(mod)
-            hash_to_block = {"hash": hash(attack_report)}
-            requests.post(
-                self._config['ENDPOINT']['BLOSS'] + '/api/v1.0/set_blocked',
-                json=json.dumps(hash_to_block))
             self._logger.info("Blocked address {} targeting {}"
                               .format(attacker.ip_address,
                                       attack_report.target))
@@ -129,6 +126,12 @@ class Controller(app_manager.RyuApp):
             blocked_addresses_by_datapath_id[attacker.datapath_id] += 1
         for datapath_id, count in blocked_addresses_by_datapath_id.iteritems():
             self._database.update_blocked_addresses(datapath_id, count)
+        hash_to_block = {"hash": hash(attack_report)}
+        if hash_to_block['hash'] not in self._blocked_attack_reports:
+            self._blocked_attack_reports.append(hash_to_block['hash'])
+            requests.post(
+                self._config['ENDPOINT']['BLOSS'] + '/api/v1.0/set_blocked',
+                json=json.dumps(hash_to_block))
 
     def find_and_report_attackers(self, datapath_id):
         attack_reports = self._hosts.detect_ongoing_attacks(datapath_id)
@@ -142,23 +145,3 @@ class Controller(app_manager.RyuApp):
                 self._config['ENDPOINT']['BLOSS'] + '/api/v1.0/report',
                 json=json.dumps(json_reports))
             self._database.update_reported_addresses(datapath_id, count)
-            # self._led_hotfix(count)
-
-    # TODO: Make this obsolete by fixing the LED problem
-    @staticmethod
-    def _led_hotfix(count):
-        # FIX to get the LEDs working properly.
-        try:
-            import socket
-            udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            HOST = '192.168.30.18'
-            PORT = 5050
-            dst = (HOST, PORT)
-            if len(count) >= 4:
-                udp.sendto("1-inc", dst)
-            elif len(count) < 4:
-                udp.sendto("1-dec", dst)
-        except:
-            print "error"
-            udp.close()

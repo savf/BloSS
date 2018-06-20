@@ -182,7 +182,7 @@ class PollenBlockchain:
             attack_reports = self.attack_reporting.process(attack_reports)
 
             for attack_report in attack_reports:
-                self._logger.debug(
+                self._logger.info(
                     "Reported {} targeting {}, action: {}, hash: {}, on: {}"
                     .format(attack_report.addresses,
                             attack_report.target,
@@ -195,7 +195,7 @@ class PollenBlockchain:
                  .reportAttackers(attack_report.subnetwork, str(attack_report)))
 
         except AttackReportingException as exception:
-            self._logger.info(exception.message)
+            self._logger.debug(exception.message)
         return
 
     def retrieve_attackers(self):
