@@ -95,7 +95,7 @@ class PollenDatabase:
         ]
         self._write(json_body)
 
-    def update_inbound_intratraffic(host, ip_address, workload):
+    def update_inbound_intratraffic(self, host, ip_address, workload):
         "Outbound traffic"
         json_body = [
             {

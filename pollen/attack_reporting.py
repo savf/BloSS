@@ -108,8 +108,9 @@ class AttackReporting:
             raise AttackReportingException('No attack reports provided.')
 
         current_timestamp = datetime.now()
-        timespan_since_last_report = (current_timestamp
-                                      - self._last_report_timestamp).seconds
+        timespan_since_last_report = (
+                current_timestamp - self._last_report_timestamp
+        ).total_seconds()
 
         max_interval = self._config['INTERVAL']['MAX_REPORT_SECONDS']
         min_interval = self._config['INTERVAL']['MIN_REPORT_SECONDS']

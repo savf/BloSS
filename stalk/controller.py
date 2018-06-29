@@ -104,10 +104,10 @@ class Controller(app_manager.RyuApp):
                                     ipv4_src=attacker.ip_address)
             ofproto = datapath.ofproto
             if attack_report.action == "blackhole":
-                actions = [parser.OFPActionOutput(99)]
-            instructions = [parser.OFPInstructionActions(ofproto
-                                                         .OFPIT_APPLY_ACTIONS,
-                                                         actions)]
+                instructions = [
+                    parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
+                                                 [])
+                ]
             blocking_duration = (self._config['INTERVAL']
                                              ['MAX_BLOCKING_DURATION_SECONDS'])
             mod = parser.OFPFlowMod(datapath=datapath,
