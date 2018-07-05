@@ -1,8 +1,8 @@
-import ast
 import json
 import os
 import time
 
+from ipfsapi.exceptions import ConnectionError, ProtocolError, TimeoutError
 from solc import compile_source
 from solc.exceptions import ContractsNotFound
 from web3 import Web3, KeepAliveRPCProvider
@@ -11,6 +11,8 @@ import paths
 from attack_reporting import AttackReporting
 from attack_reporting import AttackReportingException
 from configuration import Configuration
+from datastore import PollenDatastore
+from encryption import PollenEncryption
 from logger import Logger
 
 
@@ -20,7 +22,10 @@ class PollenBlockchain:
         self.config = Configuration()
         self._logger = Logger("Pollen")
         self.attack_reporting = AttackReporting(self.config)
-
+        self._encryption = PollenEncryption()
+        self._datastore = PollenDatastore(
+            encryption=self._encryption
+        )
         self.web3 = Web3(
             KeepAliveRPCProvider(host=self.config['BLOCKCHAIN']['HOST_ADDRESS'],
                                  port=self.config['BLOCKCHAIN']['PORT']))
@@ -54,6 +59,7 @@ class PollenBlockchain:
             )
         else:
             self.system_contract = self._create_mitigation_contract()
+        self.set_public_key(self._encryption.get_serialized_public_key())
 
     def _load_and_compile_contract(self, contract_source_filename):
         contract_source_path = os.path.join(paths.ROOT_DIR,
@@ -81,9 +87,7 @@ class PollenBlockchain:
             )
             try:
                 trans_hash = system_contract.deploy(
-                    transaction={'from': self.account_address,
-                                 'gas': 500000,
-                                 'value': 120}
+                    transaction=self._transact_with_gas()
                 )
             except ValueError:
                 self._logger.error("Failed deploying autonomous system contract")
@@ -96,7 +100,7 @@ class PollenBlockchain:
                                     contract_address)
                     self._register_contract_with_relay(contract_address)
                     return system_contract(contract_address)
-                time.sleep(1)
+                time.sleep(2)
         return None
 
     def _compute_contract_abi(self, contract_filename):
@@ -122,30 +126,26 @@ class PollenBlockchain:
             return {'from': self.account_address, 'gas': gas}
         return {'from': self.account_address, 'gas': 4700000}
 
-    def set_network(self, message):
+    def set_public_key(self, serialized_public_key):
         try:
+            ipfs_hash = self._datastore.store(serialized_public_key)
             (self.system_contract
              .transact(self._transact_with_gas())
-             .setNetwork(message))
+             .setPublicKey(str(ipfs_hash)))
         except:
-            self._logger.error("Unable to store addresses in blockchain")
-            return False
-        return True
+            self._logger.error("Failed to publish the RSA public key.")
 
-    def get_network(self):
-        # TODO: This is not implemented in the contract,
-        # see https://trello.com/c/9uXAGl7y
+    def get_public_key_for_subnetwork(self, subnetwork):
         try:
-            network_address = (self.system_contract
-                               .call({'from': self.account_address,
-                                      'to': self.system_contract.address})
-                               .getNetwork())
-            if network_address:
-                network_address = json.loads(network_address)
+            ipfs_hash = str(self.relay_contract.call(
+                {'from': self.account_address,
+                 'to': self.relay_contract.address})
+                          .getPublicKey(str(subnetwork)))
+            if type(ipfs_hash) is str:
+                return str(self._datastore.retrieve(ipfs_hash))
         except:
-            self._logger.error("Can't access network addresses from blockchain")
-            return None
-        return True
+            self._logger.error("Failed to retrieve public key for subdomain {}"
+                               .format(subnetwork))
 
     def set_blocked(self, attack_report_hash, blocked=True):
         try:
@@ -189,26 +189,31 @@ class PollenBlockchain:
                             attack_report.action,
                             hash(attack_report),
                             attack_report.timestamp))
-
+                serialized_public_key = self.get_public_key_for_subnetwork(
+                    attack_report.subnetwork)
+                ipfs_hash = self._datastore.store(
+                    str(attack_report),
+                    serialized_public_key=serialized_public_key)
                 (self.relay_contract
                  .transact(self._transact_with_gas())
-                 .reportAttackers(attack_report.subnetwork, str(attack_report)))
+                 .reportAttackers(attack_report.subnetwork, ipfs_hash))
 
         except AttackReportingException as exception:
             self._logger.debug(exception.message)
         return
 
     def retrieve_attackers(self):
-        message = str(self.system_contract.call(
+        ipfs_hash = str(self.system_contract.call(
             {'from': self.account_address,
              'to': self.system_contract.address}
         ).retrieveAttackers())
-        if not message:
+        if not ipfs_hash:
             return
         try:
-            message = ast.literal_eval(message)
-        except ValueError:
-            self._logger.error("Message malformed, AST literal eval impossible")
+            message = self._datastore.retrieve(ipfs_hash)
+        except (ConnectionError, ProtocolError, TimeoutError) as e:
+            self._logger.error("IPFS retrieve of AttackReport failed with {}"
+                               .format(str(e)))
             return
         attack_report = (self.attack_reporting
                          .parse_attack_report_message(message))

@@ -2,6 +2,7 @@ pragma solidity ^0.4.10;
 
 contract AutonomousSystem {
     function reportAttackers(string attackReport_) {}
+    function getPublicKey() constant returns (string) {}
 }
 
 contract Relay {
@@ -20,5 +21,11 @@ contract Relay {
         address contractAddress = subnetworkMappings[subnetwork_];
         AutonomousSystem autonomousSystem = AutonomousSystem(contractAddress);
         autonomousSystem.reportAttackers(attackReport_);
+    }
+
+    function getPublicKey(string subnetwork_) public returns (string) {
+        address contractAddress = subnetworkMappings[subnetwork_];
+        AutonomousSystem autonomousSystem = AutonomousSystem(contractAddress);
+        return autonomousSystem.getPublicKey();
     }
 }

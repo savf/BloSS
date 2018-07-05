@@ -3,7 +3,7 @@ pragma solidity ^0.4.10;
 contract AutonomousSystem {
 
     string storedData;
-    string network;
+    string publicKey;
     address public owner = msg.sender;
     mapping(string => bool) blockedAttackers;
 
@@ -18,12 +18,14 @@ contract AutonomousSystem {
         _;
     }
 
-    function setNetwork(string network_) {
-        network = network_;
+    function setPublicKey(string ipfsHash_)
+        onlyBy(owner)
+    {
+        publicKey = ipfsHash_;
     }
 
-    function getNetwork() constant returns (string) {
-        return network;
+    function getPublicKey() constant returns (string) {
+        return publicKey;
     }
 
     function reportAttackers(string attackReport_) {

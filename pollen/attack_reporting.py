@@ -151,6 +151,8 @@ class AttackReporting:
                         "subnetwork", "addresses", "hash"]
         if any(key not in message for key in message_keys):
             raise AttackReportingException('Attack report message malformed.')
+        if type(message) != dict:
+            raise AttackReportingException('Attack report is not a dictionary.')
         timestamp_format = self._config['DEFAULT']['TIMESTAMP_FORMAT']
         target = action = timestamp = subnetwork = addresses = hash = None
         for key, value in message.iteritems():

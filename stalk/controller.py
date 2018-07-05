@@ -108,6 +108,8 @@ class Controller(app_manager.RyuApp):
                     parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
                                                  [])
                 ]
+            else:
+                instructions = []
             blocking_duration = (self._config['INTERVAL']
                                              ['MAX_BLOCKING_DURATION_SECONDS'])
             mod = parser.OFPFlowMod(datapath=datapath,
