@@ -5,6 +5,7 @@ Enabling cooperative, multi-domain DDoS defense by distributing attack reports t
 The entire system consists of three main components:
 <p align="left">
 <img align="left" width="300" src="./platform.svg">
+
 **Stalk** monitors the network traffic of the underlying networking infrastructure
 
 **Pollen** encapsulates all communication-related tasks, handling the database and Ethereum
@@ -27,13 +28,13 @@ You need a working instance of **InfluxDB** for statistical data to be stored an
 
 ---
 
-The current implementation does not yet support deploying the required contracts. This means, you first need to deploy the `relay.sol` contract, followed by the `autonomous_system.sol` contracts for each autonomous system. Make sure to deploy the system contracts through the ethereum node running on the same system as the BloSS controller. This ensures, that the owner of the contract will be the correct ethereum node. Finally, register all subdomains with the relay contract through the `addSubnetwork()` method. Through the Remix IDE, you can use the following parameters for the method:
+The current implementation does not yet support deploying the relay contract automatically. This means, you first need to deploy the `relay.sol` contract by hand, for example through the Remix IDE. Afterwards, you need to configure the relay contract in the `config.ini` of each controller by replacing the line from the default config:
 
->"192.168.1.0/24","0xDEADBEEFFEED"
+>`RELAY_CONTRACT_ADDRESS = 0xDEADBEEFFEED`
 
-which would for example register the 192.168.1.0 subnet with netmask 255.255.255.0 to be managed by the system contract with address 0xDEADBEEFFEED.
+with the actual contract address obtained through Remix.
 
-*This very tedious setup process should be automated in a future revision of the BloSS system.*
+*A small initial setup script will soon be provided that automatically deploys the relay contract.*
 
 ---
 
