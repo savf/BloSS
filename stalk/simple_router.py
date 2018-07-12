@@ -19,6 +19,7 @@ from ryu.ofproto import ofproto_v1_3
 
 from logger import Logger
 from configuration import Configuration
+from utils import calculate_subnet
 
 # Modified from: https://github.com/ttsubo/simpleRouter/blob/master/ryu-app/blog/article_02/simpleForward.py
 
@@ -37,11 +38,6 @@ class SimpleRouter(app_manager.RyuApp):
         self._ip_to_mac_mappings[self._config['NETWORK']['ROUTER_IP']] =\
             self._config['NETWORK']['ROUTER_MAC']
         self._out_ports = self._config['NETWORK']['OUT_PORTS']
-
-    @staticmethod
-    def _calculate_subnet(ip_address, netmask):
-        netmask_bits = str(IPAddress(netmask).netmask_bits())
-        return str(IPNetwork(ip_address + "/" + netmask_bits).cidr)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -100,8 +96,8 @@ class SimpleRouter(app_manager.RyuApp):
 
         source_ip = ip_packet.src
         destination_ip = ip_packet.dst
-        destination_subnet = self._calculate_subnet(destination_ip,
-                                                    '255.255.255.0')
+        destination_subnet = calculate_subnet(destination_ip,
+                                              '255.255.255.0')
         if destination_subnet in self._out_ports:
             self.add_flow(datapath=datapath,
                           ethertype=ether.ETH_TYPE_IP,
@@ -121,11 +117,11 @@ class SimpleRouter(app_manager.RyuApp):
     def request_arp(self, datapath, ether_frame, arp_packet):
         source_ip = arp_packet.src_ip
         source_mac = ether_frame.src
-        source_subnet = self._calculate_subnet(source_ip,
-                                               '255.255.255.0')
+        source_subnet = calculate_subnet(source_ip,
+                                         '255.255.255.0')
         destination_ip = arp_packet.dst_ip
-        destination_subnet = self._calculate_subnet(destination_ip,
-                                                    '255.255.255.0')
+        destination_subnet = calculate_subnet(destination_ip,
+                                              '255.255.255.0')
         self._logger.debug("ARP request packet {} => {} (source mac: {})"
                            .format(source_ip, destination_ip, source_mac))
 
@@ -160,8 +156,8 @@ class SimpleRouter(app_manager.RyuApp):
         source_mac = ether_frame.src
         destination_ip = arp_packet.dst_ip
         destination_mac = ether_frame.dst
-        destination_subnet = self._calculate_subnet(destination_ip,
-                                                    '255.255.255.0')
+        destination_subnet = calculate_subnet(destination_ip,
+                                              '255.255.255.0')
 
         self._logger.debug("ARP reply packet {} => {} (source mac: {})"
                            .format(source_ip, destination_ip, source_mac))

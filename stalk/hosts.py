@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from pollen.attack_reporting import AttackReport
-from netaddr import IPNetwork, IPAddress
 import json
+from utils import calculate_subnet, safedivision
 
 
 class Attackers:
@@ -15,19 +15,14 @@ class Attackers:
     def __iter__(self):
         return self._addresses_by_subnetwork.iteritems()
 
-    @staticmethod
-    def _calculate_subnet(ip_address, netmask):
-        netmask_bits = str(IPAddress(netmask).netmask_bits())
-        return str(IPNetwork(ip_address + "/" + netmask_bits).cidr)
-
     def add_address(self, address):
-        subnetwork = self._calculate_subnet(address, "255.255.255.0")
+        subnetwork = calculate_subnet(address, "255.255.255.0")
         if subnetwork not in self._addresses_by_subnetwork:
             self._addresses_by_subnetwork[subnetwork] = set()
         self._addresses_by_subnetwork[subnetwork].add(address)
 
     def remove_address(self, address):
-        subnetwork = self._calculate_subnet(address, "255.255.255.0")
+        subnetwork = calculate_subnet(address, "255.255.255.0")
         if subnetwork in self._addresses_by_subnetwork:
             self._addresses_by_subnetwork[subnetwork].remove(address)
 
@@ -62,10 +57,6 @@ class Host:
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
-    @staticmethod
-    def _safedivision(dividend, divisor):
-        return dividend / max(1.0, divisor)
 
     def set_rx_traffic(self, source, traffic):
         current_time = datetime.now()
@@ -110,13 +101,13 @@ class Host:
         return result
 
     def _get_avg_tx_traffic_per_destination(self, destination):
-        return self._safedivision(
+        return safedivision(
             sum(self.tx_traffic_per_destination[destination]),
             float(len(self.tx_traffic_per_destination[destination]))
         )
 
     def _get_avg_rx_traffic_per_source(self, source):
-        return self._safedivision(
+        return safedivision(
             sum(self.rx_traffic_per_source[source]),
             float(len(self.rx_traffic_per_source[source]))
         )

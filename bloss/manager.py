@@ -14,7 +14,9 @@ class BloSS:
     def __init__(self):
         self._config = Configuration()
         self._logger = Logger("BloSS")
-        self._pollen_blockchain = PollenBlockchain()
+        self._pollen_blockchain = PollenBlockchain(
+            enable_encryption=self._config['DATASTORE']['ENCRYPTION']
+        )
         retrieval_thread = Thread(target=self._retrieve_attackers_periodically)
         retrieval_thread.daemon = True
         retrieval_thread.start()

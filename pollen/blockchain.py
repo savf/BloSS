@@ -14,15 +14,18 @@ from configuration import Configuration
 from datastore import PollenDatastore
 from encryption import PollenEncryption
 from logger import Logger
+from stalk.utils import calculate_subnet
 
 
 class PollenBlockchain:
 
-    def __init__(self):
+    def __init__(self, enable_encryption=True):
         self.config = Configuration()
         self._logger = Logger("Pollen")
         self.attack_reporting = AttackReporting(self.config)
-        self._encryption = PollenEncryption()
+        self._encryption = None
+        if enable_encryption:
+            self._encryption = PollenEncryption()
         self._datastore = PollenDatastore(
             encryption=self._encryption
         )
@@ -59,7 +62,8 @@ class PollenBlockchain:
             )
         else:
             self.system_contract = self._create_mitigation_contract()
-        self.set_public_key(self._encryption.get_serialized_public_key())
+        if self._encryption is not None:
+            self.set_public_key(self._encryption.get_serialized_public_key())
 
     def _load_and_compile_contract(self, contract_source_filename):
         contract_source_path = os.path.join(paths.ROOT_DIR,
@@ -128,7 +132,7 @@ class PollenBlockchain:
 
     def set_public_key(self, serialized_public_key):
         try:
-            ipfs_hash = self._datastore.store(serialized_public_key)
+            ipfs_hash = self._datastore.store(data=serialized_public_key)
             (self.system_contract
              .transact(self._transact_with_gas())
              .setPublicKey(str(ipfs_hash)))
@@ -177,6 +181,21 @@ class PollenBlockchain:
             self._logger.error("Can't get blocking state of hash")
         return
 
+    def _is_valid(self, attack_report_message):
+        try:
+            # Fallback for unencrypted attack reports
+            if "signature" not in attack_report_message:
+                return True
+            serialized_public_key = self.get_public_key_for_subnetwork(
+                calculate_subnet(attack_report_message['target'],
+                                 "255.255.255.0")
+            )
+            return self._encryption.verify(attack_report_message['hash'],
+                                           attack_report_message['signature'],
+                                           serialized_public_key)
+        except:
+            return False
+
     def report_attackers(self, attack_reports):
         try:
             attack_reports = self.attack_reporting.process(attack_reports)
@@ -192,7 +211,8 @@ class PollenBlockchain:
                 serialized_public_key = self.get_public_key_for_subnetwork(
                     attack_report.subnetwork)
                 ipfs_hash = self._datastore.store(
-                    str(attack_report),
+                    data=str(attack_report),
+                    to_sign=hash(attack_report),
                     serialized_public_key=serialized_public_key)
                 (self.relay_contract
                  .transact(self._transact_with_gas())
@@ -215,16 +235,17 @@ class PollenBlockchain:
             self._logger.error("IPFS retrieve of AttackReport failed with {}"
                                .format(str(e)))
             return
-        attack_report = (self.attack_reporting
-                         .parse_attack_report_message(message))
+        if self._is_valid(message):
+            attack_report = (self.attack_reporting
+                             .parse_attack_report_message(message))
 
-        if attack_report and not self._is_blocked(hash(attack_report)):
+            if attack_report and not self._is_blocked(hash(attack_report)):
 
-            self._logger.debug("Retrieved IPs {} targeting {} on {}, action {}"
-                               .format(attack_report.addresses,
-                                       attack_report.target,
-                                       attack_report.timestamp,
-                                       attack_report.action))
+                self._logger.debug("Retrieved IPs {} targeting {} on {}, to {}"
+                                   .format(attack_report.addresses,
+                                           attack_report.target,
+                                           attack_report.timestamp,
+                                           attack_report.action))
 
-            return attack_report
+                return attack_report
         return None

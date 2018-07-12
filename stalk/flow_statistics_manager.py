@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
+from utils import safedivision
 
 
 class Flow(object):
@@ -21,7 +22,7 @@ class Flow(object):
         return not self.__eq__(other)
 
     def _bytes_to_mbps(self, bytes):
-        return self._safedivision(
+        return safedivision(
             (bytes / 1024.0 / 1024.0) * 8,
             (datetime.now() - self._last_byte_count_write).seconds
         )
@@ -29,10 +30,6 @@ class Flow(object):
     @staticmethod
     def clamp(value, minimum, maximum):
         return max(min(maximum, value), minimum)
-
-    @staticmethod
-    def _safedivision(dividend, divisor):
-        return dividend / max(1.0, divisor)
 
     @property
     def source(self):
