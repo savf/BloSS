@@ -1,5 +1,6 @@
-import unittest
 import datetime
+import unittest
+
 from pollen.attack_reporting import AttackReport
 
 

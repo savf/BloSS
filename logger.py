@@ -1,5 +1,6 @@
 import logging
 import os
+
 from configuration import Configuration
 
 
@@ -20,6 +21,7 @@ class Logger:
         self._log = logging.getLogger(name_without_spaces)
         log_level = eval(self._config['LOG']['LEVEL'])
         logging.getLogger().setLevel(log_level)
+        logging.getLogger("werkzeug").setLevel(logging.ERROR)
         self._log.setLevel(log_level)
         self._log.addHandler(file_handler)
 

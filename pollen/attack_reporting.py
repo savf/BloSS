@@ -134,10 +134,7 @@ class AttackReporting:
                                 report.subnetwork == last_report.subnetwork):
                             old_attackers = (report.addresses
                                              & last_report.addresses)
-                            if not old_attackers == report.addresses:
-                                report.addresses = (report.addresses
-                                                    - old_attackers)
-                            else:
+                            if old_attackers == report.addresses:
                                 exclude = True
                     if not exclude:
                         filtered_reports.append(report)
@@ -152,7 +149,10 @@ class AttackReporting:
         if any(key not in message for key in message_keys):
             raise AttackReportingException('Attack report message malformed.')
         if type(message) != dict:
-            raise AttackReportingException('Attack report is not a dictionary.')
+            try:
+                message = json.loads(message)
+            except:
+                raise AttackReportingException('Cannot convert to dictionary')
         timestamp_format = self._config['DEFAULT']['TIMESTAMP_FORMAT']
         target = action = timestamp = subnetwork = addresses = hash = None
         for key, value in message.iteritems():

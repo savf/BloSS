@@ -1,7 +1,7 @@
+import json
 from datetime import datetime
 
 from pollen.attack_reporting import AttackReport
-import json
 from utils import calculate_subnet, safedivision
 
 

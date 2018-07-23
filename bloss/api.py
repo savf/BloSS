@@ -1,8 +1,10 @@
+import json
+
 from flask import Flask, request
 from flask_restful import abort
+
 from configuration import Configuration
 from pollen.attack_reporting import AttackReporting
-import json
 
 app = Flask(__name__)
 pollen_blockchain = None

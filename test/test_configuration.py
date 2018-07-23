@@ -1,6 +1,8 @@
 import ConfigParser
 import unittest
+
 import mock
+
 import paths
 from configuration import Configuration
 

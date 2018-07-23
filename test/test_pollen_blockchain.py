@@ -1,5 +1,4 @@
 import ConfigParser
-import os
 import unittest
 
 import mock

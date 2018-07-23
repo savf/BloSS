@@ -1,6 +1,3 @@
-import logging
-
-from netaddr import IPAddress, IPNetwork
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER
@@ -9,17 +6,18 @@ from ryu.controller.handler import set_ev_cls
 from ryu.lib.packet import arp
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ipv4
-from ryu.lib.packet.arp import arp
 from ryu.lib.packet.arp import ARP_HW_TYPE_ETHERNET
+from ryu.lib.packet.arp import arp
 from ryu.lib.packet.ethernet import ethernet
 from ryu.lib.packet.ipv4 import ipv4
 from ryu.lib.packet.packet import Packet
 from ryu.ofproto import ether
 from ryu.ofproto import ofproto_v1_3
 
-from logger import Logger
 from configuration import Configuration
+from logger import Logger
 from utils import calculate_subnet
+
 
 # Modified from: https://github.com/ttsubo/simpleRouter/blob/master/ryu-app/blog/article_02/simpleForward.py
 

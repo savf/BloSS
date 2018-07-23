@@ -4,7 +4,6 @@ import ipfsapi
 from ipfsapi.exceptions import ConnectionError, ProtocolError, TimeoutError
 
 from configuration import Configuration
-from encryption import PollenEncryptionException
 from logger import Logger
 
 
@@ -23,6 +22,8 @@ class PollenDatastore:
                 data = self._encryption.encrypt(to_sign,
                                                 data,
                                                 serialized_public_key)
+                self._logger.info("Encrypted attack report with hash {}."
+                                  .format(to_sign))
                 data = json.dumps(data)
             return self.connection.add_bytes(bytes(data))
         except (ProtocolError, ConnectionError, TimeoutError) as e:

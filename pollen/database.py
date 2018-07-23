@@ -1,5 +1,6 @@
-from influxdb import InfluxDBClient
 from datetime import datetime
+
+from influxdb import InfluxDBClient
 
 
 class PollenDatabase:
