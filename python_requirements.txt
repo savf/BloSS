@@ -13,6 +13,8 @@ nose-html-reporting==0.2.3
 oslo.config==4.7.0
 py-solc==2.1.0
 requests==2.18.4
+routes==2.4.1
 rlp==0.6.0
 tinyrpc==0.5
 web3==3.9.0
+webob==1.8.2
