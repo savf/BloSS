@@ -93,10 +93,13 @@ class SimpleRouter(app_manager.RyuApp):
                            .format(ip_packet.src, ip_packet.dst, in_port))
 
         source_ip = ip_packet.src
+        source_subnet = calculate_subnet(source_ip,
+                                         '255.255.255.0')
         destination_ip = ip_packet.dst
         destination_subnet = calculate_subnet(destination_ip,
                                               '255.255.255.0')
-        if destination_subnet in self._out_ports:
+        if (destination_subnet in self._out_ports
+                and source_subnet in self._out_ports):
             self.add_flow(datapath=datapath,
                           ethertype=ether.ETH_TYPE_IP,
                           source_ip=source_ip,
